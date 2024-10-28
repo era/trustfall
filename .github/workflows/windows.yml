@@ -1,0 +1,79 @@
+name: Rust Windows CI
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+
+jobs:
+  rust-test-windows:
+    runs-on: windows-latest
+    env:
+      CARGO_INCREMENTAL: 0
+
+    steps:
+      # Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      # Install Rust toolchain using rustup
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-msvc
+          override: true
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Clear sccache stats
+        run: sccache --zero-stats
+
+      # Cache the Cargo registry and build directory to speed up builds
+      - name: Cache Cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: cargo test
+        run: cargo test --workspace --all-targets --all-features --exclude trustfall_stubgen
+
+      # Run doctests separately, since `--all-targets` above explicitly excludes doctests.
+      # https://github.com/rust-lang/cargo/issues/6669
+      - name: run doctests
+        run: cargo test --workspace --all-features --doc
+
+      - name: test trustfall_stubgen if it has changed
+        run: |
+          git fetch origin main
+
+          # `git diff --quiet` exits non-zero if there are changes
+          git diff --quiet HEAD origin/main -- ./trustfall_stubgen || (cd trustfall_stubgen/ && cargo test --all-features)
+      - name: Show sccache stats
+        run: sccache --show-stats
