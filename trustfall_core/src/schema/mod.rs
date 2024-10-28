@@ -892,7 +892,7 @@ mod tests {
         let input_data = fs::read_to_string(input_path).unwrap();
 
         // Ensure all test schemas contain the directive definitions this module promises are valid.
-        assert!(input_data.contains(Schema::ALL_DIRECTIVE_DEFINITIONS));
+        assert!(input_data.replace("\r\n", "\n").contains(&Schema::ALL_DIRECTIVE_DEFINITIONS));
 
         match Schema::parse(input_data) {
             Ok(_) => {}
@@ -904,8 +904,7 @@ mod tests {
 
     #[test]
     fn schema_subtypes() {
-        let input_data = include_str!("../../test_data/schemas/numbers.graphql");
-        let schema = Schema::parse(input_data).expect("valid schema");
+        let schema = numbers_schema();
 
         assert!(schema.subtypes("Nonexistent").is_none());
 
@@ -915,5 +914,17 @@ mod tests {
         let mut number_subtypes = schema.subtypes("Number").unwrap().collect_vec();
         number_subtypes.sort_unstable();
         assert_eq!(vec!["Composite", "Neither", "Number", "Prime"], number_subtypes);
+    }
+
+    #[cfg(target_family = "unix")]
+    fn numbers_schema() -> Schema {
+        Schema::parse(include_str!("../../test_data/schemas/numbers.graphql"))
+            .expect("valid schema")
+    }
+
+    #[cfg(target_family = "windows")]
+    fn numbers_schema() -> Schema {
+        Schema::parse(include_str!("..\\..\\test_data\\schemas\\numbers.graphql"))
+            .expect("valid schema")
     }
 }

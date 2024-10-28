@@ -217,6 +217,7 @@ pub struct NumbersAdapter {
 }
 
 impl NumbersAdapter {
+    // #[cfg(target_family = "unix")]
     pub fn new() -> Self {
         Self {
             schema: Schema::parse(include_str!(
@@ -225,6 +226,15 @@ impl NumbersAdapter {
             .expect("schema is not valid"),
         }
     }
+    // #[cfg(target_family = "windows")]
+    // pub fn new() -> Self {
+    //     Self {
+    //         schema: Schema::parse(include_str!(
+    //             "..\\..\\trustfall_core\\test_data\\schemas\\numbers.graphql"
+    //         ))
+    //         .expect("schema is not valid"),
+    //     }
+    // }
 
     pub fn schema(&self) -> &Schema {
         &self.schema

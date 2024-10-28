@@ -261,6 +261,17 @@ fn check_entrypoint_target_edges() {
     assert_eq!(expected_rows.as_slice(), rows);
 }
 
+#[cfg(target_family = "unix")]
+fn parameterized_edges_schema() -> Schema {
+    Schema::parse(include_str!("../../../test_data/schemas/parameterized_edges.graphql")).unwrap()
+}
+
+#[cfg(target_family = "windows")]
+fn parameterized_edges_schema() -> Schema {
+    Schema::parse(include_str!("..\\..\\..\\test_data\\schemas\\parameterized_edges.graphql"))
+        .unwrap()
+}
+
 #[test]
 fn check_parameterized_edges() {
     let query = r#"
@@ -291,9 +302,8 @@ fn check_parameterized_edges() {
         parameter_default: Option<String>,
     }
 
-    let test_schema =
-        Schema::parse(include_str!("../../../test_data/schemas/parameterized_edges.graphql"))
-            .unwrap();
+    let test_schema = parameterized_edges_schema();
+
     let adapter = Arc::new(SchemaAdapter::new(&test_schema));
 
     let indexed = crate::frontend::parse(get_schema(), query).expect("not a valid query");

@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, fs, sync::Arc};
 
 use trustfall_wasm::{
     adapter::{AdapterShim, JsAdapter},
@@ -145,10 +145,11 @@ pub fn run_numbers_query(
 ) -> Result<Vec<BTreeMap<String, JsFieldValue>>, String> {
     trustfall_wasm::util::initialize().expect("init failed");
 
-    let schema = trustfall_core::schema::Schema::parse(include_str!(
-        "../../trustfall_core/test_data/schemas/numbers.graphql"
-    ))
-    .unwrap();
+    let schema_text =
+        fs::read_to_string("../../trustfall_core/test_data/schemas/numbers.graphql")
+            .expect("failed to read numbers schema");
+
+    let schema = trustfall_core::schema::Schema::parse(schema_text).unwrap();
     let adapter = make_adapter();
 
     let query = trustfall_core::frontend::parse(&schema, query).map_err(|e| e.to_string())?;
